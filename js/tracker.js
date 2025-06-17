@@ -460,6 +460,11 @@ const tracker = {
         // instantiate ScatterGL for 3D points view (BlazePose model only
     },
 
+    syncCanvasToVideo() {
+        tracker.canvas.width = tracker.video.videoWidth;
+        tracker.canvas.height = tracker.video.videoHeight;
+    },
+
     /*
         Initialize camera
      */
@@ -516,12 +521,17 @@ const tracker = {
 
         tracker.isMirrored = false;
 
+        const canvas = document.getElementById('canvas'); // Replace with your actual canvas ID
+        
+
         const constraints = {
+            width: tracker.canvas.width || 1280,
+            height: tracker.canvas.height || 720,
             audio: false,
             video: {
                 facingMode: "user", // or "environment"
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: { ideal: canvas.width },
+                height: { ideal: canvas.height },
             },
         };
 
@@ -757,94 +767,106 @@ const tracker = {
     /*
         Handle poses and draw them on canvas
      */
-        handlePoses: function() {
-            // run user defined hooks
-            tracker.dispatch('beforeupdate', tracker.poses);
-        
-            if (tracker.poses && tracker.poses.length > 0) {
-                let pathlist;
-        
-                // get correct pathlist for specified neural net
-                switch (tracker.detectorModel) {
-                    case poseDetection.SupportedModels.BlazePose:
-                        pathlist = tracker.paths['blaze_pose'];
-                        break;
+        // ...existing code...
+// ...existing code...
+handlePoses: function() {
+    tracker.dispatch('beforeupdate', tracker.poses);
+
+    // Define your box (example: top-left (100,100), width 300, height 400)
+    const box = { x: 300, y: 10, width: 500, height: 600 };
+
+    if (tracker.poses && tracker.poses.length > 0) {
+        let pathlist;
+
+        switch (tracker.detectorModel) {
+            case poseDetection.SupportedModels.BlazePose:
+                pathlist = tracker.paths['blaze_pose'];
+                break;
+        }
+
+        const warningEl = document.getElementById('warning');
+
+        for (let pose of tracker.poses) {
+            // Draw the box on the canvas
+            tracker.ctx.save();
+            tracker.ctx.strokeStyle = 'blue';
+            tracker.ctx.lineWidth = 3;
+            tracker.ctx.strokeRect(box.x, box.y, box.width, box.height);
+            tracker.ctx.restore();
+
+            let noseInBox = false, toeInBox = false, noseVisible = false, toeVisible = false;
+
+            const nose = tracker.findKeypoint("nose", pose);
+            const toe = tracker.findKeypoint("left_foot_index", pose);
+
+            if (nose) {
+                noseVisible = (nose.score || 0) >= tracker.captureScoreThreshold;
+                noseInBox = nose.x >= box.x && nose.x <= box.x + box.width &&
+                            nose.y >= box.y && nose.y <= box.y + box.height;
+            }
+            if (toe) {
+                toeVisible = (toe.score || 0) >= tracker.captureScoreThreshold;
+                toeInBox = toe.x >= box.x && toe.x <= box.x + box.width &&
+                           toe.y >= box.y && toe.y <= box.y + box.height;
+            }
+
+            // Only capture if both visible and both in box
+            if (noseVisible && toeVisible && noseInBox && toeInBox) {
+                tracker.warningMessage = '';
+                if (!tracker.photoCaptured) {
+                    tracker.capturePhoto();
+                    tracker.photoCaptured = true;
+                    setTimeout(() => { tracker.photoCaptured = false; }, 5000);
                 }
-        
-                let point, score;
-        
-                for (let pose of tracker.poses) {
-                    for (let k in pathlist) {
-                        if (!pathlist.hasOwnProperty(k)) continue;
-                        if (!tracker.hasScore(pathlist[k], pose)) continue;
-        
-                        point = tracker.getCoords(pathlist[k], pose);
-                        score = tracker.getScore(pathlist[k], pose);
-        
-                        // Draw path on canvas
-                        tracker.drawPath(
-                            point.from_x, point.from_y,
-                            point.to_x, point.to_y,
-                            pathlist[k].rgb[0],
-                            pathlist[k].rgb[1],
-                            pathlist[k].rgb[2],
-                            score
-                        );
-        
-                        // 🔴 Only capture when "nose_to_left_toe" is drawn & not already captured
-                        if (k === "nose_to_left_toe") {
-                            const nose = tracker.findKeypoint("nose", pose);
-                            const toe = tracker.findKeypoint("left_foot_index", pose);
-                        
-                            const noseScore = nose?.score || 0;
-                            const toeScore = toe?.score || 0;
-                        
-                            const noseVisible = noseScore >= tracker.captureScoreThreshold;
-                            const toeVisible = toeScore >= tracker.captureScoreThreshold;
-                        
-                            const bothVisible = noseVisible && toeVisible;
-                        
-                            if (bothVisible) {
-                                tracker.warningMessage = '';
-                        
-                                if (!tracker.photoCaptured) {
-                                    tracker.capturePhoto();
-                                    tracker.photoCaptured = true;
-                                    setTimeout(() => { tracker.photoCaptured = false; }, 5000); // prevent multiple rapid captures
-                                }
-                            } else {
-                                tracker.warningMessage = '⚠️ Make sure both your nose and toes are visible!';
-                            }
-                        }
-                        
-                    }
-        
-                    // draw 3D points if available using ScatterGL
-                    if (tracker.enable3D && pose.keypoints3D && pose.keypoints3D.length > 0) {
-                        tracker.drawKeypoints3D(pose.keypoints3D);
-                    }
+            } else {
+                tracker.warningMessage = '⚠️ Please make sure both your nose and left toe are visible and inside the blue box!';
+            }
 
-                    if (tracker.warningMessage) {
-                        tracker.ctx.save();
-                        tracker.ctx.font = '24px Arial';
-                        tracker.ctx.fillStyle = 'red';
-                        tracker.ctx.fillText(tracker.warningMessage, 20, 40);
-                        tracker.ctx.restore();
-                    }
+            // Draw paths as before
+            for (let k in pathlist) {
+                if (!pathlist.hasOwnProperty(k)) continue;
+                if (!tracker.hasScore(pathlist[k], pose)) continue;
 
-                    const warningEl = document.getElementById('warning');
-                    if (tracker.warningMessage) {
-                        warningEl.style.display = 'block';
-                        warningEl.textContent = tracker.warningMessage;
-                    } else {
-                        warningEl.style.display = 'none';
-}
+                const point = tracker.getCoords(pathlist[k], pose);
+                const score = tracker.getScore(pathlist[k], pose);
+
+                tracker.drawPath(
+                    point.from_x, point.from_y,
+                    point.to_x, point.to_y,
+                    pathlist[k].rgb[0],
+                    pathlist[k].rgb[1],
+                    pathlist[k].rgb[2],
+                    score
+                );
+            }
+
+            if (tracker.enable3D && pose.keypoints3D && pose.keypoints3D.length > 0) {
+                tracker.drawKeypoints3D(pose.keypoints3D);
+            }
+
+            if (tracker.warningMessage) {
+                tracker.ctx.save();
+                tracker.ctx.font = '24px Arial';
+                tracker.ctx.fillStyle = 'red';
+                tracker.ctx.fillText(tracker.warningMessage, 20, 40);
+                tracker.ctx.restore();
+            }
+
+            if (warningEl) {
+                if (tracker.warningMessage) {
+                    warningEl.style.display = 'block';
+                    warningEl.textContent = tracker.warningMessage;
+                } else {
+                    warningEl.style.display = 'none';
                 }
             }
-        
-            // run user defined hooks
-            tracker.dispatch('afterupdate', tracker.poses);
-        },
+        }
+    }
+
+    tracker.dispatch('afterupdate', tracker.poses);
+},
+// ...existing code...
+// ...existing code...
         
 
     /*
