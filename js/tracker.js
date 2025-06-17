@@ -810,12 +810,18 @@ handlePoses: function() {
         // === iOS Portrait Mode Fix ===
         const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         const isPortrait = window.innerHeight > window.innerWidth;
+        console.log("innerHeight:", window.innerHeight, "innerWidth:", window.innerWidth, "isPortrait:", isPortrait);
         if (isiOS && isPortrait) {
             tracker.ctx.save();
             tracker.ctx.translate(0, tracker.canvas.height);
-            tracker.ctx.rotate(-Math.PI / 2);
+            //tracker.ctx.rotate(-Math.PI / 2);
+            tracker.ctx.drawImage(tracker.video, 0, 0, tracker.canvas.height, tracker.canvas.width);
+            tracker.ctx.strokeRect(box.y, box.x, box.height, box.width);
+            tracker.ctx.restore();
+        } else {
+            tracker.ctx.drawImage(tracker.video, 0, 0, tracker.canvas.width, tracker.canvas.height);
+            tracker.ctx.strokeRect(box.x, box.y, box.width, box.height);
         }
-        // ============================
 
         for (let pose of tracker.poses) {
             // Draw the box on the canvas
