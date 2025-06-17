@@ -427,6 +427,25 @@ const tracker = {
         }
     },
 
+    isPortrait() {
+        return window.innerHeight > window.innerWidth;
+    },
+
+    // If you need to rotate the canvas for iOS portrait, do this inside your drawing/rendering function, e.g.:
+    // function drawRotatedIfNeeded() {
+    //     if (tracker.isPortrait() && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    //         tracker.ctx.save();
+    //         tracker.ctx.translate(0, tracker.canvas.height);
+    //         tracker.ctx.rotate(-Math.PI / 2);
+    //         // Draw video and keypoints here
+    //         tracker.ctx.restore();
+    //     } else {
+    //         // Draw normally
+    //     }
+    // }
+
+    
+
     /*
         Run predictions
      */
@@ -450,6 +469,8 @@ const tracker = {
      */
     init: function() {
         tracker.log('Initializing...');
+
+        
 
         // init elements
         tracker.video = document.querySelector(tracker.elVideo);
@@ -769,10 +790,10 @@ const tracker = {
      */
         // ...existing code...
 // ...existing code...
+// ...existing code...
 handlePoses: function() {
     tracker.dispatch('beforeupdate', tracker.poses);
 
-    // Define your box (example: top-left (100,100), width 300, height 400)
     const box = { x: 300, y: 10, width: 500, height: 600 };
 
     if (tracker.poses && tracker.poses.length > 0) {
@@ -785,6 +806,16 @@ handlePoses: function() {
         }
 
         const warningEl = document.getElementById('warning');
+
+        // === iOS Portrait Mode Fix ===
+        const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isPortrait = window.innerHeight > window.innerWidth;
+        if (isiOS && isPortrait) {
+            tracker.ctx.save();
+            tracker.ctx.translate(0, tracker.canvas.height);
+            tracker.ctx.rotate(-Math.PI / 2);
+        }
+        // ============================
 
         for (let pose of tracker.poses) {
             // Draw the box on the canvas
@@ -810,7 +841,6 @@ handlePoses: function() {
                            toe.y >= box.y && toe.y <= box.y + box.height;
             }
 
-            // Only capture if both visible and both in box
             if (noseVisible && toeVisible && noseInBox && toeInBox) {
                 tracker.warningMessage = '';
                 if (!tracker.photoCaptured) {
@@ -861,14 +891,38 @@ handlePoses: function() {
                 }
             }
         }
+
+        // === Restore context if rotated ===
+        if (isiOS && isPortrait) {
+            tracker.ctx.restore();
+        }
+        // ================================
     }
 
     tracker.dispatch('afterupdate', tracker.poses);
 },
-// ...existing code...
-// ...existing code...
-        
 
+        
+ renderPoses() {
+    tracker.clearCanvas();
+
+    const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isPortrait = window.innerHeight > window.innerWidth;
+    
+
+    if (isiOS && isPortrait) {
+        tracker.ctx.save();
+        tracker.ctx.translate(0, tracker.canvas.height);
+        tracker.ctx.rotate(-Math.PI / 2);
+        // Now all drawing (drawPath, drawLine, drawCircle) will be rotated
+    }
+
+    // ... your code that calls tracker.drawPath(...) for each connection ...
+
+    if (isiOS && isPortrait) {
+        tracker.ctx.restore();
+    }
+},
     /*
         Draw point and bone on canvas
      */
