@@ -430,59 +430,92 @@ const tracker = {
     /*
         Run predictions
      */
-    run: function(source) {
-        switch (source) {
-            case 'video':
-                tracker.initVideo();
-                break;
-            case 'camera':
-                tracker.initCamera();
-                break;
-            case 'stream':
-                tracker.initStream();
-                break;
-        }
-    },
+        run: function(source) {
+            switch (source) {
+                case 'video':
+                    tracker.initVideo();
+                    break;
+                case 'camera':
+                    tracker.initCamera();
+                    break;
+                case 'stream':
+                    tracker.initStream();
+                    break;
+            }
+        },
+        
+        /*
+            Initialize core elements
+        */
+        init: function() {
+            tracker.log('Initializing...');
+        
+            // init elements
+            tracker.video = document.querySelector(tracker.elVideo);
+            tracker.canvas = document.querySelector(tracker.elCanvas);
+            tracker.scatterGLEl = document.querySelector(tracker.el3D);
+            tracker.ctx = tracker.canvas.getContext("2d");
+        
+            // Optionally resize canvas on init
+            tracker.resizeCanvasToCSS();
+        },
+        
+        /*
+            Ensure canvas matches CSS size and devicePixelRatio
+        */
+        resizeCanvasToCSS: function() {
+            const dpr = window.devicePixelRatio || 1;
+        
+            const width = tracker.canvas.clientWidth;
+            const height = tracker.canvas.clientHeight;
+        
+            tracker.canvas.width = width * dpr;
+            tracker.canvas.height = height * dpr;
+        
+            tracker.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            tracker.ctx.scale(dpr, dpr); // Match high-DPI screens
+        },
+        
+        /*
+            Setup event listeners for orientation/resize
+        */
+        initEvents: function() {
+            const handleResize = () => {
+                tracker.resizeCanvasToCSS();
+                tracker.clearCanvas();
+                tracker.cameraFrame();
+            };
+        
+            window.addEventListener('resize', () => setTimeout(handleResize, 300));
+            window.addEventListener('orientationchange', () => setTimeout(handleResize, 500));
+        },
+        
+        /*
+            Initialize camera
+        */
+        initCamera: async function() {
+            tracker.init();
+        
+            try {
+                tracker.detector = await poseDetection.createDetector(
+                    tracker.detectorModel,
+                    tracker.detectorConfig
+                );
+        
+                tracker.video = await tracker.setupCamera();
+                tracker.video.play();
+        
+                tracker.resizeCanvasToCSS();  // Ensure canvas size is synced first
+                tracker.cameraFrame();        // Start rendering loop
+                tracker.initEvents();         // Setup event listeners
+            } catch (e) {
+                tracker.dispatch('videoerror', e);
+                console.error(e);
+            }
+        },
+        
 
-
-    /*
-        Initialize core elements
-     */
-    init: function() {
-        tracker.log('Initializing...');
-
-        // init elements
-        tracker.video = document.querySelector(tracker.elVideo);
-        tracker.canvas = document.querySelector(tracker.elCanvas),
-        tracker.scatterGLEl = document.querySelector(tracker.el3D);
-        tracker.ctx = tracker.canvas.getContext("2d");
-
-        // instantiate ScatterGL for 3D points view (BlazePose model only
-    },
-
-    /*
-        Initialize camera
-     */
-    initCamera: async function() {
-        tracker.init();
-
-        // init detectot
-        tracker.detector = await poseDetection.createDetector(
-            tracker.detectorModel,
-            tracker.detectorConfig
-        );
-
-        // init camera
-        try {
-            tracker.video = await tracker.setupCamera();
-            tracker.video.play();
-            tracker.cameraFrame();
-        } catch (e) {
-            tracker.dispatch('videoerror', e);
-            console.error(e);
-        }
-    },
-
+    
     capturePhoto: function () {
         const dataURL = tracker.canvas.toDataURL("image/png");
     
@@ -520,8 +553,8 @@ const tracker = {
             audio: false,
             video: {
                 facingMode: "user", // or "environment"
-                width: { ideal: tracker.autofit ? undefined : 1280 },
-                height: { ideal: tracker.autofit ? undefined : 720 },
+                width: { ideal: 256 },
+                height: { ideal: 256 },
             },
         };
 
@@ -552,18 +585,14 @@ const tracker = {
             });
     },
 
-    scaleKeypoints: function(keypoints, videoSize, canvasSize, offsetX = 0, mirror = false) {
-
-        
-        const scaleX = canvasSize.width / videoSize.width;
-        const scaleY = canvasSize.height / videoSize.height;
-      
-        return keypoints.map(kp => ({
-          ...kp,
-          x: mirror
-            ? canvasSize.width - (kp.x * scaleX) + offsetX
-            : (kp.x * scaleX) + offsetX,
-          y: kp.y * scaleY,
+    scaleKeypoints(keypoints) {
+        const dpr = window.devicePixelRatio || 1;
+        const canvasWidth = tracker.canvas.width;
+        const canvasHeight = tracker.canvas.height;
+    
+        return keypoints.map(point => ({
+            x: point.x * dpr,
+            y: point.y * dpr
         }));
     },
       
@@ -577,49 +606,60 @@ const tracker = {
             // Predict poses
             tracker.poses = await tracker.detector.estimatePoses(tracker.video);
         
-            const dpr = window.devicePixelRatio || 1;
-            tracker.canvas.width = tracker.canvas.clientWidth * dpr;
-            tracker.canvas.height = tracker.canvas.clientHeight * dpr;
-        
             const ctx = tracker.ctx;
-            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
-            ctx.scale(dpr, dpr); // Scale for high-DPI
+        
+            // Ensure canvas is properly resized and scaled
+            tracker.resizeCanvasToCSS();
+            
+        
+            const canvasSize = {
+                width: tracker.canvas.clientWidth,
+                height: tracker.canvas.clientHeight
+            };
+        
+            let videoWidth = tracker.video.videoWidth;
+            let videoHeight = tracker.video.videoHeight;
+        
+            // Fix for iOS: video might be rotated
+            const isDevicePortrait = window.innerHeight > window.innerWidth;
+            const isVideoPortrait = videoHeight > videoWidth;
+        
+            if (isDevicePortrait !== isVideoPortrait) {
+                [videoWidth, videoHeight] = [videoHeight, videoWidth];
+            }
+        
+            const videoSize = { width: videoWidth, height: videoHeight };
+            const renderSize = tracker.calculateSize(videoSize, canvasSize);
+        
+            const xOffset = (canvasSize.width - renderSize.width) / 2;
+            const yOffset = (canvasSize.height - renderSize.height) / 2;
+
+            /* console.log('📏 videoSize:', videoSize);
+            console.log('📏 canvasSize:', canvasSize);
+            console.log('📏 renderSize:', renderSize);
+            console.log('📏 xOffset:', xOffset, 'yOffset:', yOffset); */
+
+
+            ctx.save();
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(xOffset, yOffset, renderSize.width, renderSize.height);
+            ctx.restore();
+        
+            tracker.clearCanvas();
         
             if (tracker.video.readyState === tracker.video.HAVE_ENOUGH_DATA) {
-                let videoWidth = tracker.video.videoWidth;
-                let videoHeight = tracker.video.videoHeight;
-        
-                const isPortrait = window.innerHeight > window.innerWidth;
-                if (isPortrait && videoWidth > videoHeight) {
-                    const temp = videoWidth;
-                    videoWidth = videoHeight;
-                    videoHeight = temp;
-                }
-        
-                const videoSize = { width: videoWidth, height: videoHeight };
-                const canvasSize = {
-                    width: tracker.canvas.clientWidth,
-                    height: tracker.canvas.clientHeight
-                };
-        
-                const renderSize = tracker.calculateSize(videoSize, canvasSize);
-                const xOffset = (canvasSize.width - renderSize.width) / 2;
-                const yOffset = (canvasSize.height - renderSize.height) / 2;
-        
-                tracker.clearCanvas();
-        
-                // ðŸªž Mirror canvas horizontally if front camera
                 if (tracker.isMirrored) {
                     ctx.save();
                     ctx.translate(canvasSize.width, 0);
-                    ctx.scale(-1, 1); // Flip horizontally
+                    ctx.scale(-1, 1);
                     ctx.drawImage(tracker.video, xOffset, yOffset, renderSize.width, renderSize.height);
                     ctx.restore();
                 } else {
                     ctx.drawImage(tracker.video, xOffset, yOffset, renderSize.width, renderSize.height);
                 }
         
-                // Store render state for scaling
+                // Store current rendering state for accurate scaling
                 tracker._xOffset = xOffset;
                 tracker._yOffset = yOffset;
                 tracker._renderSize = renderSize;
@@ -633,6 +673,7 @@ const tracker = {
         
             tracker.reqID = window.requestAnimationFrame(tracker.cameraFrame);
         },
+        
         
  
     findKeypoint: function(name, pose) {
@@ -745,14 +786,13 @@ const tracker = {
             }
             return Math.ceil(x * factor + tracker._xOffset);
         },
-
-    /*
-        Re-calculate/scale Y position of point
-     */
+        
         scaleY: function (y) {
             const factor = tracker._renderSize.height / tracker._videoSize.height;
-            return Math.ceil(y * factor + tracker._yOffset);
+            return Math.ceil(y * factor + tracker._yOffset);  // <-- add yOffset here!
         },
+        
+        
 
     /*
         Handle poses and draw them on canvas
@@ -790,6 +830,24 @@ const tracker = {
                             pathlist[k].rgb[2],
                             score
                         );
+
+                        const nose = tracker.findKeypoint("nose", pose);
+                        if (nose && nose.score > 0.5) {
+                            const scaledX = tracker.scaleX(nose.x);
+                            const scaledY = tracker.scaleY(nose.y);
+
+
+
+                            // Draw box to visualize keypoint
+                            tracker.ctx.save();
+                            tracker.ctx.strokeStyle = 'lime';
+                            tracker.ctx.lineWidth = 2;
+                            tracker.ctx.beginPath();
+                            tracker.ctx.arc(scaledX, scaledY, 10, 0, 2 * Math.PI);
+                            tracker.ctx.stroke();
+                            tracker.ctx.restore();
+
+                        }
         
                         // 🔴 Only capture when "nose_to_left_toe" is drawn & not already captured
                         if (k === "nose_to_left_toe") {
