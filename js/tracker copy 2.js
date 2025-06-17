@@ -64,366 +64,7 @@ const tracker = {
                 'to_y': ['left_foot_index'],
                 'scores': ['nose', 'left_foot_index'],
                 'rgb': [255, 0, 0] // Red line
-            },
-            'l_hip_l_knee': {
-                'from_x': ['left_hip'],
-                'from_y': ['left_hip'],
-                'to_x': ['left_knee'],
-                'to_y': ['left_knee'],
-                'scores': ['left_knee'],
-                'rgb': [42, 163, 69]
-            },
-            // right hip > right knee
-            'r_hip_r_knee': {
-                'from_x': ['right_hip'],
-                'from_y': ['right_hip'],
-                'to_x': ['right_knee'],
-                'to_y': ['right_knee'],
-                'scores': ['right_knee'],
-                'rgb': [42, 163, 69]
-            },
-            // hips (mid-point)
-            'hip_l_m': { // left
-                'from_x': ['left_hip'],
-                'from_y': ['left_hip'],
-                'to_x': ['left_hip', 'right_hip'],
-                'to_y': ['left_hip', 'right_hip'],
-                'scores': ['left_hip', 'right_hip'],
-                'rgb': [140, 232, 90]
-            },
-            'hip_r_m': { // right
-                'from_x': ['right_hip'],
-                'from_y': ['right_hip'],
-                'to_x': ['left_hip', 'right_hip'],
-                'to_y': ['left_hip', 'right_hip'],
-                'scores': ['left_hip', 'right_hip'],
-                'rgb': [140, 232, 90]
-            },
-            // hip to shoulders
-            'hip_l_shoulder_l': { // left
-                'from_x': ['left_hip'],
-                'from_y': ['left_hip'],
-                'to_x': ['left_shoulder'],
-                'to_y': ['left_shoulder'],
-                'scores': ['left_hip', 'left_shoulder'],
-                'rgb': [242, 85, 240]
-            },
-            'hip_r_shoulder_r': { // right
-                'from_x': ['right_hip'],
-                'from_y': ['right_hip'],
-                'to_x': ['right_shoulder'],
-                'to_y': ['right_shoulder'],
-                'scores': ['right_hip', 'right_shoulder'],
-                'rgb': [242, 85, 240]
-            },
-            // left knee > left ankle
-            'l_knee_l_ankle': {
-                'from_x': ['left_knee'],
-                'from_y': ['left_knee'],
-                'to_x': ['left_ankle'],
-                'to_y': ['left_ankle'],
-                'scores': ['left_ankle'],
-                'rgb': [140, 232, 90]
-            },
-            // right knee > right ankle
-            'r_knee_r_ankle': {
-                'from_x': ['right_knee'],
-                'from_y': ['right_knee'],
-                'to_x': ['right_ankle'],
-                'to_y': ['right_ankle'],
-                'scores': ['right_ankle'],
-                'rgb': [140, 232, 90]
-            },
-            // left ankle > left heel
-            'l_ankle_l_heel': {
-                'from_x': ['left_ankle'],
-                'from_y': ['left_ankle'],
-                'to_x': ['left_heel'],
-                'to_y': ['left_heel'],
-                'scores': ['left_ankle', 'left_heel'],
-                'rgb': [42, 163, 69]
-            },
-            // left heel > left foot_index
-            'l_heel_l_foot_index': {
-                'from_x': ['left_heel'],
-                'from_y': ['left_heel'],
-                'to_x': ['left_foot_index'],
-                'to_y': ['left_foot_index'],
-                'scores': ['left_heel', 'left_foot_index'],
-                'rgb': [42, 163, 69]
-            },
-            // left foot_index > left ankle
-            'l_foot_index_l_ankle': {
-                'from_x': ['left_foot_index'],
-                'from_y': ['left_foot_index'],
-                'to_x': ['left_ankle'],
-                'to_y': ['left_ankle'],
-                'scores': ['left_foot_index', 'left_ankle'],
-                'rgb': [42, 163, 69]
-            },
-            // right ankle > right heel
-            'r_ankle_r_heel': {
-                'from_x': ['right_ankle'],
-                'from_y': ['right_ankle'],
-                'to_x': ['right_heel'],
-                'to_y': ['right_heel'],
-                'scores': ['right_ankle', 'right_heel'],
-                'rgb': [42, 163, 69]
-            },
-            // right heel > right foot_index
-            'r_heel_r_foot_index': {
-                'from_x': ['right_heel'],
-                'from_y': ['right_heel'],
-                'to_x': ['right_foot_index'],
-                'to_y': ['right_foot_index'],
-                'scores': ['right_heel', 'right_foot_index'],
-                'rgb': [42, 163, 69]
-            },
-            // right foot_index > right ankle
-            'r_foot_index_r_ankle': {
-                'from_x': ['right_foot_index'],
-                'from_y': ['right_foot_index'],
-                'to_x': ['right_ankle'],
-                'to_y': ['right_ankle'],
-                'scores': ['right_foot_index', 'right_ankle'],
-                'rgb': [42, 163, 69]
-            },
-            // hips > shoulders
-            'hips_shoulders_m': {
-                'from_x': ['left_hip', 'right_hip'],
-                'from_y': ['left_hip', 'right_hip'],
-                'to_x': ['left_shoulder', 'right_shoulder'],
-                'to_y': ['left_shoulder', 'right_shoulder'],
-                'scores': ['left_hip', 'right_hip'],
-                'rgb': [242, 85, 240]
-            },
-            // shoulders (mid-point)
-            'shoulder_l_m': { // left
-                'from_x': ['left_shoulder'],
-                'from_y': ['left_shoulder'],
-                'to_x': ['left_shoulder', 'right_shoulder'],
-                'to_y': ['left_shoulder', 'right_shoulder'],
-                'scores': ['left_shoulder', 'right_shoulder'],
-                'rgb': [92, 70, 235]
-            },
-            'shoulder_r_m': { // right
-                'from_x': ['right_shoulder'],
-                'from_y': ['right_shoulder'],
-                'to_x': ['left_shoulder', 'right_shoulder'],
-                'to_y': ['left_shoulder', 'right_shoulder'],
-                'scores': ['left_shoulder', 'right_shoulder'],
-                'rgb': [92, 70, 235]
-            },
-            // shoulders (mid-point) > nose (neck)
-            'neck': {
-                'from_x': ['left_shoulder', 'right_shoulder'],
-                'from_y': ['left_shoulder', 'right_shoulder'],
-                'to_x': ['left_ear', 'right_ear'],
-                'to_y': ['left_ear', 'right_ear'],
-                'scores': ['left_shoulder', 'right_shoulder'],
-                'rgb': [92, 108, 145]
-            },
-            // left shoulder > left elbow
-            'l_shoulder_l_elbow': {
-                'from_x': ['left_shoulder'],
-                'from_y': ['left_shoulder'],
-                'to_x': ['left_elbow'],
-                'to_y': ['left_elbow'],
-                'scores': ['left_elbow'],
-                'rgb': [245, 129, 66]
-            },
-            // right shoulder > right elbow
-            'r_shoulder_r_elbow': {
-                'from_x': ['right_shoulder'],
-                'from_y': ['right_shoulder'],
-                'to_x': ['right_elbow'],
-                'to_y': ['right_elbow'],
-                'scores': ['right_elbow'],
-                'rgb': [245, 129, 66]
-            },
-            // left elbow > left wrist
-            'l_elbow_l_wrist': {
-                'from_x': ['left_elbow'],
-                'from_y': ['left_elbow'],
-                'to_x': ['left_wrist'],
-                'to_y': ['left_wrist'],
-                'scores': ['left_wrist'],
-                'rgb': [227, 156, 118]
-            },
-            // right elbow > right wrist
-            'r_elbow_r_wrist': {
-                'from_x': ['right_elbow'],
-                'from_y': ['right_elbow'],
-                'to_x': ['right_wrist'],
-                'to_y': ['right_wrist'],
-                'scores': ['right_wrist'],
-                'rgb': [227, 156, 118]
-            },
-
-            // left wrist > left_thumb
-            'l_wrist_l_thumb': {
-                'from_x': ['left_wrist'],
-                'from_y': ['left_wrist'],
-                'to_x': ['left_thumb'],
-                'to_y': ['left_thumb'],
-                'scores': ['left_wrist', 'left_thumb'],
-                'rgb': [245, 129, 66]
-            },
-            // left wrist > left_pinky
-            'l_wrist_l_pinky': {
-                'from_x': ['left_wrist'],
-                'from_y': ['left_wrist'],
-                'to_x': ['left_pinky'],
-                'to_y': ['left_pinky'],
-                'scores': ['left_wrist', 'left_pinky'],
-                'rgb': [245, 129, 66]
-            },
-            // left pinky > left index
-            'l_pinky_l_index': {
-                'from_x': ['left_pinky'],
-                'from_y': ['left_pinky'],
-                'to_x': ['left_index'],
-                'to_y': ['left_index'],
-                'scores': ['left_pinky', 'left_index'],
-                'rgb': [245, 129, 66]
-            },
-            // left index > left wrist
-            'l_index_l_wrist': {
-                'from_x': ['left_index'],
-                'from_y': ['left_index'],
-                'to_x': ['left_wrist'],
-                'to_y': ['left_wrist'],
-                'scores': ['left_index', 'left_wrist'],
-                'rgb': [245, 129, 66]
-            },
-            // right wrist > right_thumb
-            'r_wrist_r_thumb': {
-                'from_x': ['right_wrist'],
-                'from_y': ['right_wrist'],
-                'to_x': ['right_thumb'],
-                'to_y': ['right_thumb'],
-                'scores': ['right_wrist', 'right_thumb'],
-                'rgb': [245, 129, 66]
-            },
-            // right wrist > right_pinky
-            'r_wrist_r_pinky': {
-                'from_x': ['right_wrist'],
-                'from_y': ['right_wrist'],
-                'to_x': ['right_pinky'],
-                'to_y': ['right_pinky'],
-                'scores': ['right_wrist', 'right_pinky'],
-                'rgb': [245, 129, 66]
-            },
-            // right pinky > right index
-            'r_pinky_r_index': {
-                'from_x': ['right_pinky'],
-                'from_y': ['right_pinky'],
-                'to_x': ['right_index'],
-                'to_y': ['right_index'],
-                'scores': ['right_pinky', 'right_index'],
-                'rgb': [245, 129, 66]
-            },
-            // right index > right wrist
-            'r_index_r_wrist': {
-                'from_x': ['right_index'],
-                'from_y': ['right_index'],
-                'to_x': ['right_wrist'],
-                'to_y': ['right_wrist'],
-                'scores': ['right_index', 'right_wrist'],
-                'rgb': [245, 129, 66]
-            },
-            // nose > left eye_inner
-            'nose_l_eye_inner': {
-                'from_x': ['nose'],
-                'from_y': ['nose'],
-                'to_x': ['left_eye_inner'],
-                'to_y': ['left_eye_inner'],
-                'scores': ['left_eye_inner'],
-                'rgb': [255, 0, 0]
-            },
-
-            // nose > right eye_inner
-            'nose_r_eye_inner': {
-                'from_x': ['nose'],
-                'from_y': ['nose'],
-                'to_x': ['right_eye_inner'],
-                'to_y': ['right_eye_inner'],
-                'scores': ['right_eye_inner'],
-                'rgb': [255, 0, 0]
-            },
-            // mouth_left > mouth_right
-            'l_mouth_r_mouth': {
-                'from_x': ['mouth_left'],
-                'from_y': ['mouth_left'],
-                'to_x': ['mouth_right'],
-                'to_y': ['mouth_right'],
-                'scores': ['mouth_left', 'mouth_right'],
-                'rgb': [150, 0, 0]
-            },
-            // mouth_right > mouth_left
-            'r_mouth_l_mouth': {
-                'from_x': ['mouth_right'],
-                'from_y': ['mouth_right'],
-                'to_x': ['mouth_left'],
-                'to_y': ['mouth_left'],
-                'scores': ['mouth_right', 'mouth_left'],
-                'rgb': [150, 0, 0]
-            },
-
-            // left eye > left eye_outer
-            'l_eye_l_eye_outer': {
-                'from_x': ['left_eye'],
-                'from_y': ['left_eye'],
-                'to_x': ['left_eye_outer'],
-                'to_y': ['left_eye_outer'],
-                'scores': ['left_eye_outer'],
-                'rgb': [197, 117, 15]
-            },
-            // left eye_outer > left ear
-            'l_eye_outer_l_ear': {
-                'from_x': ['left_eye_outer'],
-                'from_y': ['left_eye_outer'],
-                'to_x': ['left_ear'],
-                'to_y': ['left_ear'],
-                'scores': ['left_ear'],
-                'rgb': [197, 117, 15]
-            },
-            // left eye_inner > left eye
-            'l_eye_inner_l_eye': {
-                'from_x': ['left_eye_inner'],
-                'from_y': ['left_eye_inner'],
-                'to_x': ['left_eye'],
-                'to_y': ['left_eye'],
-                'scores': ['left_eye'],
-                'rgb': [197, 217, 15]
-            },
-            // right eye > right eye_outer
-            'r_eye_r_eye_outer': {
-                'from_x': ['right_eye'],
-                'from_y': ['right_eye'],
-                'to_x': ['right_eye_outer'],
-                'to_y': ['right_eye_outer'],
-                'scores': ['right_eye_outer'],
-                'rgb': [197, 117, 15]
-            },
-            // right eye_outer > right ear
-            'r_eye_outer_r_ear': {
-                'from_x': ['right_eye_outer'],
-                'from_y': ['right_eye_outer'],
-                'to_x': ['right_ear'],
-                'to_y': ['right_ear'],
-                'scores': ['right_ear'],
-                'rgb': [197, 117, 15]
-            },
-            // right eye_inner > right eye
-            'r_eye_inner_r_eye': {
-                'from_x': ['right_eye_inner'],
-                'from_y': ['right_eye_inner'],
-                'to_x': ['right_eye'],
-                'to_y': ['right_eye'],
-                'scores': ['right_eye'],
-                'rgb': [197, 217, 15]
-            },
+            }
         }
     },
 
@@ -485,19 +126,18 @@ const tracker = {
 
     capturePhoto: function () {
         const dataURL = tracker.canvas.toDataURL("image/png");
+        
+        // Option 1: Open in a new tab
+        // window.open(dataURL);
     
-        // Auto-download
+        // Option 2: Automatically download
         const a = document.createElement('a');
         a.href = dataURL;
         a.download = 'pose_capture.png';
         a.click();
     
-        // Show preview (optional)
-        const previewEl = document.getElementById('photo-preview');
-        if (previewEl) {
-            previewEl.src = dataURL;
-            previewEl.style.display = 'block';
-        }
+        // Option 3: Trigger a custom event
+        // tracker.dispatch('photocaptured', dataURL);
     },
     
 
@@ -792,31 +432,26 @@ const tracker = {
                         );
         
                         // 🔴 Only capture when "nose_to_left_toe" is drawn & not already captured
-                        if (k === "nose_to_left_toe") {
+                        if (k === "nose_to_left_toe" && !tracker.photoCaptured) {
                             const nose = tracker.findKeypoint("nose", pose);
                             const toe = tracker.findKeypoint("left_foot_index", pose);
                         
                             const noseScore = nose?.score || 0;
                             const toeScore = toe?.score || 0;
                         
-                            const noseVisible = noseScore >= tracker.captureScoreThreshold;
-                            const toeVisible = toeScore >= tracker.captureScoreThreshold;
-                        
-                            const bothVisible = noseVisible && toeVisible;
-                        
-                            if (bothVisible) {
+                            if (noseScore >= tracker.captureScoreThreshold && toeScore >= tracker.captureScoreThreshold) {
+                                console.log("threshold", tracker.captureScoreThreshold, "nose", noseScore, "toe", toeScore);
                                 tracker.warningMessage = '';
-                        
                                 if (!tracker.photoCaptured) {
                                     tracker.capturePhoto();
                                     tracker.photoCaptured = true;
-                                    setTimeout(() => { tracker.photoCaptured = false; }, 5000); // prevent multiple rapid captures
+                                    setTimeout(() => { tracker.photoCaptured = false; }, 5000);
                                 }
                             } else {
-                                tracker.warningMessage = '⚠️ Make sure both your nose and toes are visible!';
+                                // Show warning if scores are too low
+                                tracker.warningMessage = '⚠️ Please make sure your nose and toes are visible';
                             }
                         }
-                        
                     }
         
                     // draw 3D points if available using ScatterGL
@@ -831,14 +466,6 @@ const tracker = {
                         tracker.ctx.fillText(tracker.warningMessage, 20, 40);
                         tracker.ctx.restore();
                     }
-
-                    const warningEl = document.getElementById('warning');
-                    if (tracker.warningMessage) {
-                        warningEl.style.display = 'block';
-                        warningEl.textContent = tracker.warningMessage;
-                    } else {
-                        warningEl.style.display = 'none';
-}
                 }
             }
         

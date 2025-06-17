@@ -1,11 +1,3 @@
-// Copyright Marcin "szczyglis" Szczyglinski, 2022. All Rights Reserved.
-// Email: szczyglis@protonmail.com
-// WWW: https://github.com/szczyglis-dev/js-ai-body-tracker
-// Library: app.js
-// Version: 1.0.0
-// This file is licensed under the MIT License.
-// License text available at https://opensource.org/licenses/MIT
-
 const app = {
     debug: false, // bool, enable/disable debug
     init: function() {
