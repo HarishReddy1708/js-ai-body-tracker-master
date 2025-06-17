@@ -427,25 +427,6 @@ const tracker = {
         }
     },
 
-    isPortrait() {
-        return window.innerHeight > window.innerWidth;
-    },
-
-    // If you need to rotate the canvas for iOS portrait, do this inside your drawing/rendering function, e.g.:
-    // function drawRotatedIfNeeded() {
-    //     if (tracker.isPortrait() && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    //         tracker.ctx.save();
-    //         tracker.ctx.translate(0, tracker.canvas.height);
-    //         tracker.ctx.rotate(-Math.PI / 2);
-    //         // Draw video and keypoints here
-    //         tracker.ctx.restore();
-    //     } else {
-    //         // Draw normally
-    //     }
-    // }
-
-    
-
     /*
         Run predictions
      */
@@ -470,8 +451,6 @@ const tracker = {
     init: function() {
         tracker.log('Initializing...');
 
-        
-
         // init elements
         tracker.video = document.querySelector(tracker.elVideo);
         tracker.canvas = document.querySelector(tracker.elCanvas),
@@ -479,11 +458,6 @@ const tracker = {
         tracker.ctx = tracker.canvas.getContext("2d");
 
         // instantiate ScatterGL for 3D points view (BlazePose model only
-    },
-
-    syncCanvasToVideo() {
-        tracker.canvas.width = tracker.video.videoWidth;
-        tracker.canvas.height = tracker.video.videoHeight;
     },
 
     /*
@@ -542,17 +516,12 @@ const tracker = {
 
         tracker.isMirrored = false;
 
-        const canvas = document.getElementById('canvas'); // Replace with your actual canvas ID
-        
-
         const constraints = {
-            width: tracker.canvas.width || 1280,
-            height: tracker.canvas.height || 720,
             audio: false,
             video: {
                 facingMode: "user", // or "environment"
-                width: { ideal: canvas.width },
-                height: { ideal: canvas.height },
+                width: { ideal: tracker.autofit ? undefined : 1280 },
+                height: { ideal: tracker.autofit ? undefined : 720 },
             },
         };
 
@@ -788,147 +757,96 @@ const tracker = {
     /*
         Handle poses and draw them on canvas
      */
-        // ...existing code...
-// ...existing code...
-// ...existing code...
-handlePoses: function() {
-    tracker.dispatch('beforeupdate', tracker.poses);
-
-    const box = { x: 300, y: 10, width: 500, height: 600 };
-
-    if (tracker.poses && tracker.poses.length > 0) {
-        let pathlist;
-
-        switch (tracker.detectorModel) {
-            case poseDetection.SupportedModels.BlazePose:
-                pathlist = tracker.paths['blaze_pose'];
-                break;
-        }
-
-        const warningEl = document.getElementById('warning');
-
-        // === iOS Portrait Mode Fix ===
-        const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        const isPortrait = window.innerHeight > window.innerWidth;
-        console.log("innerHeight:", window.innerHeight, "innerWidth:", window.innerWidth, "isPortrait:", isPortrait);
-        if (isiOS && isPortrait) {
-            tracker.ctx.save();
-            tracker.ctx.translate(0, tracker.canvas.height);
-            //tracker.ctx.rotate(-Math.PI / 2);
-            tracker.ctx.drawImage(tracker.video, 0, 0, tracker.canvas.height, tracker.canvas.width);
-            tracker.ctx.strokeRect(box.y, box.x, box.height, box.width);
-            tracker.ctx.restore();
-        } else {
-            tracker.ctx.drawImage(tracker.video, 0, 0, tracker.canvas.width, tracker.canvas.height);
-            tracker.ctx.strokeRect(box.x, box.y, box.width, box.height);
-        }
-
-        for (let pose of tracker.poses) {
-            // Draw the box on the canvas
-            tracker.ctx.save();
-            tracker.ctx.strokeStyle = 'blue';
-            tracker.ctx.lineWidth = 3;
-            tracker.ctx.strokeRect(box.x, box.y, box.width, box.height);
-            tracker.ctx.restore();
-
-            let noseInBox = false, toeInBox = false, noseVisible = false, toeVisible = false;
-
-            const nose = tracker.findKeypoint("nose", pose);
-            const toe = tracker.findKeypoint("left_foot_index", pose);
-
-            if (nose) {
-                noseVisible = (nose.score || 0) >= tracker.captureScoreThreshold;
-                noseInBox = nose.x >= box.x && nose.x <= box.x + box.width &&
-                            nose.y >= box.y && nose.y <= box.y + box.height;
-            }
-            if (toe) {
-                toeVisible = (toe.score || 0) >= tracker.captureScoreThreshold;
-                toeInBox = toe.x >= box.x && toe.x <= box.x + box.width &&
-                           toe.y >= box.y && toe.y <= box.y + box.height;
-            }
-
-            if (noseVisible && toeVisible && noseInBox && toeInBox) {
-                tracker.warningMessage = '';
-                if (!tracker.photoCaptured) {
-                    tracker.capturePhoto();
-                    tracker.photoCaptured = true;
-                    setTimeout(() => { tracker.photoCaptured = false; }, 5000);
-                }
-            } else {
-                tracker.warningMessage = '⚠️ Please make sure both your nose and left toe are visible and inside the blue box!';
-            }
-
-            // Draw paths as before
-            for (let k in pathlist) {
-                if (!pathlist.hasOwnProperty(k)) continue;
-                if (!tracker.hasScore(pathlist[k], pose)) continue;
-
-                const point = tracker.getCoords(pathlist[k], pose);
-                const score = tracker.getScore(pathlist[k], pose);
-
-                tracker.drawPath(
-                    point.from_x, point.from_y,
-                    point.to_x, point.to_y,
-                    pathlist[k].rgb[0],
-                    pathlist[k].rgb[1],
-                    pathlist[k].rgb[2],
-                    score
-                );
-            }
-
-            if (tracker.enable3D && pose.keypoints3D && pose.keypoints3D.length > 0) {
-                tracker.drawKeypoints3D(pose.keypoints3D);
-            }
-
-            if (tracker.warningMessage) {
-                tracker.ctx.save();
-                tracker.ctx.font = '24px Arial';
-                tracker.ctx.fillStyle = 'red';
-                tracker.ctx.fillText(tracker.warningMessage, 20, 40);
-                tracker.ctx.restore();
-            }
-
-            if (warningEl) {
-                if (tracker.warningMessage) {
-                    warningEl.style.display = 'block';
-                    warningEl.textContent = tracker.warningMessage;
-                } else {
-                    warningEl.style.display = 'none';
-                }
-            }
-        }
-
-        // === Restore context if rotated ===
-        if (isiOS && isPortrait) {
-            tracker.ctx.restore();
-        }
-        // ================================
-    }
-
-    tracker.dispatch('afterupdate', tracker.poses);
-},
-
+        handlePoses: function() {
+            // run user defined hooks
+            tracker.dispatch('beforeupdate', tracker.poses);
         
- renderPoses() {
-    tracker.clearCanvas();
+            if (tracker.poses && tracker.poses.length > 0) {
+                let pathlist;
+        
+                // get correct pathlist for specified neural net
+                switch (tracker.detectorModel) {
+                    case poseDetection.SupportedModels.BlazePose:
+                        pathlist = tracker.paths['blaze_pose'];
+                        break;
+                }
+        
+                let point, score;
+        
+                for (let pose of tracker.poses) {
+                    for (let k in pathlist) {
+                        if (!pathlist.hasOwnProperty(k)) continue;
+                        if (!tracker.hasScore(pathlist[k], pose)) continue;
+        
+                        point = tracker.getCoords(pathlist[k], pose);
+                        score = tracker.getScore(pathlist[k], pose);
+        
+                        // Draw path on canvas
+                        tracker.drawPath(
+                            point.from_x, point.from_y,
+                            point.to_x, point.to_y,
+                            pathlist[k].rgb[0],
+                            pathlist[k].rgb[1],
+                            pathlist[k].rgb[2],
+                            score
+                        );
+        
+                        // 🔴 Only capture when "nose_to_left_toe" is drawn & not already captured
+                        if (k === "nose_to_left_toe") {
+                            const nose = tracker.findKeypoint("nose", pose);
+                            const toe = tracker.findKeypoint("left_foot_index", pose);
+                        
+                            const noseScore = nose?.score || 0;
+                            const toeScore = toe?.score || 0;
+                        
+                            const noseVisible = noseScore >= tracker.captureScoreThreshold;
+                            const toeVisible = toeScore >= tracker.captureScoreThreshold;
+                        
+                            const bothVisible = noseVisible && toeVisible;
+                        
+                            if (bothVisible) {
+                                tracker.warningMessage = '';
+                        
+                                if (!tracker.photoCaptured) {
+                                    tracker.capturePhoto();
+                                    tracker.photoCaptured = true;
+                                    setTimeout(() => { tracker.photoCaptured = false; }, 5000); // prevent multiple rapid captures
+                                }
+                            } else {
+                                tracker.warningMessage = '⚠️ Make sure both your nose and toes are visible!';
+                            }
+                        }
+                        
+                    }
+        
+                    // draw 3D points if available using ScatterGL
+                    if (tracker.enable3D && pose.keypoints3D && pose.keypoints3D.length > 0) {
+                        tracker.drawKeypoints3D(pose.keypoints3D);
+                    }
 
-    const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isPortrait = window.innerHeight > window.innerWidth;
-    
+                    if (tracker.warningMessage) {
+                        tracker.ctx.save();
+                        tracker.ctx.font = '24px Arial';
+                        tracker.ctx.fillStyle = 'red';
+                        tracker.ctx.fillText(tracker.warningMessage, 20, 40);
+                        tracker.ctx.restore();
+                    }
 
-    if (isiOS && isPortrait) {
-        tracker.ctx.save();
-        tracker.ctx.translate(0, tracker.canvas.height);
-        tracker.ctx.rotate(-Math.PI / 2);
-        // Now all drawing (drawPath, drawLine, drawCircle) will be rotated
-    }
+                    const warningEl = document.getElementById('warning');
+                    if (tracker.warningMessage) {
+                        warningEl.style.display = 'block';
+                        warningEl.textContent = tracker.warningMessage;
+                    } else {
+                        warningEl.style.display = 'none';
+}
+                }
+            }
+        
+            // run user defined hooks
+            tracker.dispatch('afterupdate', tracker.poses);
+        },
+        
 
-    // ... your code that calls tracker.drawPath(...) for each connection ...
-
-    if (isiOS && isPortrait) {
-        tracker.ctx.restore();
-    }
-},
     /*
         Draw point and bone on canvas
      */
