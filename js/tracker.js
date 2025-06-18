@@ -1,8 +1,8 @@
 const tracker = {
     // config options
-    detectorModel: poseDetection.SupportedModels.MoveNet, // detector model
+    detectorModel: poseDetection.SupportedModels.BlazePose, // detector model
     detectorConfig: { // detector configuration
-        modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
+        modelType: poseDetection.movenet.modelType.lite,
         enableSmoothing: true,
         multiPoseMaxDimension: 256,
         enableTracking: true,
@@ -60,10 +60,10 @@ const tracker = {
             'nose_to_left_toe': {
                 'from_x': ['nose'],
                 'from_y': ['nose'],
-                'to_x': ['left_foot_index'], // or 'right_foot_index'
+                'to_x': ['left_foot_index'], 
                 'to_y': ['left_foot_index'],
                 'scores': ['nose', 'left_foot_index'],
-                'rgb': [255, 0, 0] // Red line
+                'rgb': [255, 0, 0]
             },
             'l_hip_l_knee': {
                 'from_x': ['left_hip'],
@@ -423,14 +423,10 @@ const tracker = {
                 'to_y': ['right_eye'],
                 'scores': ['right_eye'],
                 'rgb': [197, 217, 15]
-            },
-            
+            }
         }
     },
 
-    /*
-        Run predictions
-     */
     run: function(source) {
         switch (source) {
             case 'video':
@@ -446,24 +442,16 @@ const tracker = {
     },
 
 
-    /*
-        Initialize core elements
-     */
     init: function() {
         tracker.log('Initializing...');
-
-        // init elements
         tracker.video = document.querySelector(tracker.elVideo);
         tracker.canvas = document.querySelector(tracker.elCanvas),
         tracker.scatterGLEl = document.querySelector(tracker.el3D);
         tracker.ctx = tracker.canvas.getContext("2d");
 
-        // instantiate ScatterGL for 3D points view (BlazePose model only
     },
 
-    /*
-        Initialize camera
-     */
+
     initCamera: async function() {
         tracker.init();
 
@@ -486,25 +474,14 @@ const tracker = {
 
     capturePhoto: function () {
         const dataURL = tracker.canvas.toDataURL("image/png");
-        
-        // Option 1: Open in a new tab
-        // window.open(dataURL);
-    
-        // Option 2: Automatically download
         const a = document.createElement('a');
         a.href = dataURL;
         a.download = 'pose_capture.png';
         a.click();
     
-        // Option 3: Trigger a custom event
-        // tracker.dispatch('photocaptured', dataURL);
     },
     
 
-
-    /*
-        Set-up camera
-     */
     setupCamera: async function() {
         tracker.setStatus('Please wait...initializing camera...');
         // init device
@@ -532,12 +509,10 @@ const tracker = {
             }
             tracker.video.srcObject = stream; // attach camera stream to video
 
-            // get width and height of the camera video stream
             let stream_settings = stream.getVideoTracks()[0].getSettings();
             let stream_width = stream_settings.width;
             let stream_height = stream_settings.height;
 
-            // re-init width and height with info from stream
             tracker.video.width = stream_width;
             tracker.video.height = stream_height;
 
@@ -566,11 +541,43 @@ const tracker = {
           y: kp.y * scaleY,
         }));
     },
-      
 
-    /*
-        Render camera frame
-     */
+    drawCenterBox: function (widthRatio = 0.5, heightRatio = 0.6, color = 'red') {
+        const ctx = tracker.ctx;
+        const dpr = window.devicePixelRatio || 1;
+    
+        const cssWidth = tracker.canvas.clientWidth;
+        const cssHeight = tracker.canvas.clientHeight;
+    
+        const boxWidth = cssWidth * widthRatio;
+        const boxHeight = cssHeight * heightRatio;
+    
+        const x = ((cssWidth - boxWidth) / 2) * dpr;
+        const y = ((cssHeight - boxHeight) / 2) * dpr;
+        const w = boxWidth * dpr;
+        const h = boxHeight * dpr;
+    
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+    
+        return { x, y, w, h }; // Return box bounds
+    },
+
+    isPointInsideBox: function (x, y, box) {
+        return (
+            x >= box.x &&
+            x <= box.x + box.w &&
+            y >= box.y &&
+            y <= box.y + box.h
+        );
+    },
+    
+    
+    
         cameraFrame: async function () {
             tracker.setStatus('');
         
@@ -607,8 +614,8 @@ const tracker = {
                 const yOffset = (canvasSize.height - renderSize.height) / 2;
         
                 tracker.clearCanvas();
+                ;
         
-                // ðŸªž Mirror canvas horizontally if front camera
                 if (tracker.isMirrored) {
                     ctx.save();
                     ctx.translate(canvasSize.width, 0);
@@ -618,8 +625,11 @@ const tracker = {
                 } else {
                     ctx.drawImage(tracker.video, xOffset, yOffset, renderSize.width, renderSize.height);
                 }
+                console.log('🎯 Drawing center box...');
+
+                //tracker.drawCenterBox(0.6, 0.9);
+
         
-                // Store render state for scaling
                 tracker._xOffset = xOffset;
                 tracker._yOffset = yOffset;
                 tracker._renderSize = renderSize;
@@ -643,23 +653,16 @@ const tracker = {
         }
     },
 
-    /*
-        Find and return pose keypoint coordinate (X or Y) by keypoint's name
-     */
+ 
     findPosePoint: function(axis, name, pose) {
         const kp = tracker.findKeypoint(name, pose);
         return kp[axis];
     },
 
-    /*
-        Return coordinate (X or Y) for points in path
-     */
     getCoord: function(axis, points, pose) {
-        // if only one point then return coordinate for this one
         if (points.length == 1) {
             return tracker.findPosePoint(axis, points[0], pose);
         } else {
-            // if multiple points then calculate coordinate between them
             let sum = 0.0;
             for (const el of points) {
                 sum += tracker.findPosePoint(axis, el, pose);
@@ -668,9 +671,6 @@ const tracker = {
         }
     },
 
-    /*
-        Return coordinates for path
-     */
     getCoords: function(path, pose) {
         return {
             'from_x': tracker.getCoord('x', path.from_x, pose),
@@ -680,15 +680,11 @@ const tracker = {
         };
     },
 
-    /*
-        Get score for path
-     */
+
     getScore: function(path, pose) {
-        // if only one point then check score for this one
         if (path.scores.length == 1) {
             return tracker.findKeypoint(path.scores[0], pose).score;
         } else {
-            // if multiple points then check score for all
             let sum = 0.0;
             for (const el of path.scores) {
                 sum += tracker.findKeypoint(el, pose).score;
@@ -697,18 +693,13 @@ const tracker = {
         }
     },
 
-    /*
-        Checks if path has required minimum score do draw it on canvas
-     */
     hasScore: function(path, pose) {
         let res = true;
-        // if only one point then check score for this one
         if (path.scores.length == 1) {
             if (tracker.findKeypoint(path.scores[0], pose).score < tracker.minScore) {
                 res = false;
             }
         } else {
-            // if multiple points then check score for all
             for (const el of path.scores) {
                 if (tracker.findKeypoint(el, pose).score < tracker.minScore) {
                     res = false;
@@ -735,9 +726,6 @@ const tracker = {
         }
     },
 
-    /*
-        Re-calculate/scale X position of point
-     */
         scaleX: function (x) {
             const factor = tracker._renderSize.width / tracker._videoSize.width;
             if (tracker.isMirrored) {
@@ -746,151 +734,140 @@ const tracker = {
             return Math.ceil(x * factor + tracker._xOffset);
         },
 
-    /*
-        Re-calculate/scale Y position of point
-     */
+ 
         scaleY: function (y) {
             const factor = tracker._renderSize.height / tracker._videoSize.height;
             return Math.ceil(y * factor + tracker._yOffset);
         },
 
-    /*
-        Handle poses and draw them on canvas
-     */
-        // ...existing code...
-        // ...existing code...
-handlePoses: function() {
-    // run user defined hooks
-    tracker.dispatch('beforeupdate', tracker.poses);
 
-    // Get canvas dimensions (assuming tracker.canvas is your canvas element)
-    const canvasWidth = tracker.canvas.width;
-    const canvasHeight = tracker.canvas.height;
-
-    // Responsive box: 20% margin, 60% width/height
-    const box = {
-        x: canvasWidth * 0.05,
-        y: canvasHeight * 0.05,
-        width: canvasWidth * 0.4,
-        height: canvasHeight * 0.4
-    };
-
-    if (tracker.poses && tracker.poses.length > 0) {
-        let pathlist;
-
-        // get correct pathlist for specified neural net
-        switch (tracker.detectorModel) {
-            case poseDetection.SupportedModels.BlazePose:
-                pathlist = tracker.paths['blaze_pose'];
-                break;
-        }
-
-        let point, score;
-
-        for (let pose of tracker.poses) {
-            for (let k in pathlist) {
-                if (!pathlist.hasOwnProperty(k)) continue;
-                if (!tracker.hasScore(pathlist[k], pose)) continue;
-
-                point = tracker.getCoords(pathlist[k], pose);
-                score = tracker.getScore(pathlist[k], pose);
-
-                // Draw path on canvas
-                tracker.drawPath(
-                    point.from_x, point.from_y,
-                    point.to_x, point.to_y,
-                    pathlist[k].rgb[0],
-                    pathlist[k].rgb[1],
-                    pathlist[k].rgb[2],
-                    score
-                );
-
-                // 🔴 Only capture when "nose_to_left_toe" is drawn & not already captured
-                if (k === "nose_to_left_toe" && !tracker.photoCaptured) {
-                    const nose = tracker.findKeypoint("nose", pose);
-                    const toe = tracker.findKeypoint("left_foot_index", pose);
-
-                    const noseScore = nose?.score || 0;
-                    const toeScore = toe?.score || 0;
-
-                    // Check if both points are inside the box
-                    const isInsideBox = (pt) =>
-                        pt &&
-                        pt.x >= box.x &&
-                        pt.x <= box.x + box.width &&
-                        pt.y >= box.y &&
-                        pt.y <= box.y + box.height;
-
-                    if (
-                        noseScore >= tracker.captureScoreThreshold &&
-                        toeScore >= tracker.captureScoreThreshold &&
-                        isInsideBox(nose) &&
-                        isInsideBox(toe)
-                    ) {
-                        tracker.warningMessage = '';
-                        if (!tracker.photoCaptured) {
-                            tracker.capturePhoto();
-                            tracker.photoCaptured = true;
-                            setTimeout(() => { tracker.photoCaptured = false; }, 5000);
+        handlePoses: function() {
+            tracker.dispatch('beforeupdate', tracker.poses);
+        
+            const canvas = tracker.canvas;
+            
+        
+            // Draw and get the centered box with dynamic size based on canvas dimensions (scaled as a fraction)
+            const box = tracker.drawCenterBox(0.5, 0.8);  // box is 50% of the width and 60% of the height of the canvas
+        
+            // Loop through poses to check if nose and toe are inside the box
+            if (tracker.poses && tracker.poses.length > 0) {
+                let pathlist;
+        
+                // Choose pose model (BlazePose in this case)
+                switch (tracker.detectorModel) {
+                    case poseDetection.SupportedModels.BlazePose:
+                        pathlist = tracker.paths['blaze_pose'];
+                        break;
+                }
+        
+                let point, score;
+        
+                // Loop through each pose and its keypoints
+                for (let pose of tracker.poses) {
+                    for (let k in pathlist) {
+                        if (!pathlist.hasOwnProperty(k)) continue;
+                        if (!tracker.hasScore(pathlist[k], pose)) continue;
+        
+                        point = tracker.getCoords(pathlist[k], pose);
+                        score = tracker.getScore(pathlist[k], pose);
+        
+                        // Draw path
+                        tracker.drawPath(
+                            point.from_x, point.from_y,
+                            point.to_x, point.to_y,
+                            pathlist[k].rgb[0],
+                            pathlist[k].rgb[1],
+                            pathlist[k].rgb[2],
+                            score
+                        );
+        
+                        // Look for nose-to-toe path
+                        if (k === "nose_to_left_toe" && !tracker.photoCaptured) {
+                            const nose = tracker.findKeypoint("nose", pose);
+                            const toe = tracker.findKeypoint("left_foot_index", pose);
+        
+                            const noseScore = nose?.score || 0;
+                            const toeScore = toe?.score || 0;
+        
+                            // Check if nose and toe are visible (scores above threshold)
+                            const noseVisible = noseScore >= tracker.captureScoreThreshold;
+                            const toeVisible = toeScore >= tracker.captureScoreThreshold;
+        
+                            if (noseVisible && toeVisible) {
+                                // Scale positions for canvas
+                                const noseX = tracker.scaleX(nose.x);
+                                const noseY = tracker.scaleY(nose.y);
+                                const toeX = tracker.scaleX(toe.x);
+                                const toeY = tracker.scaleY(toe.y);
+        
+                                // Check if both points are inside the box
+                                const isNoseInside = tracker.isPointInsideBox(noseX, noseY, box);
+                                const isToeInside = tracker.isPointInsideBox(toeX, toeY, box);
+        
+                                if (isNoseInside && isToeInside) {
+                                    tracker.warningMessage = '';  // Clear warning if both points are inside the box
+        
+                                    // Capture photo if not already captured
+                                    if (!tracker.photoCaptured) {
+                                        tracker.capturePhoto();
+                                        tracker.photoCaptured = true;
+        
+                                        // Reset capture flag after 5 seconds
+                                        setTimeout(() => {
+                                            tracker.photoCaptured = false;
+                                        }, 5000);
+                                    }
+                                } else {
+                                    // Warning if nose or toe are not inside the box
+                                    tracker.warningMessage = '⚠️ Stand inside the red box!';
+                                }
+                            } else {
+                                // Warning if nose or toe are not visible
+                                tracker.warningMessage = '⚠️ Make sure your nose and toe are visible!';
+                            }
                         }
-                    } else {
-                        // Show warning if scores are too low or points not in box
-                        tracker.warningMessage = '⚠️ Make sure your nose and left toe are visible and inside the box';
+                    }
+        
+                    // Draw 3D keypoints if enabled
+                    if (tracker.enable3D && pose.keypoints3D && pose.keypoints3D.length > 0) {
+                        tracker.drawKeypoints3D(pose.keypoints3D);
+                    }
+        
+                    // Draw the centered box
+                    tracker.ctx.save();
+                    tracker.ctx.strokeStyle = 'red';  // Red box for better visibility
+                    tracker.ctx.lineWidth = 3;
+                    tracker.ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    tracker.ctx.restore();
+        
+                    // Display warning message if necessary
+                    if (tracker.warningMessage) {
+                        tracker.ctx.save();
+                        tracker.ctx.font = '24px Arial';
+                        tracker.ctx.fillStyle = 'red';
+                        tracker.ctx.fillText(tracker.warningMessage, 20, 40);
+                        tracker.ctx.restore();
                     }
                 }
             }
-
-            // draw 3D points if available using ScatterGL
-            if (tracker.enable3D && pose.keypoints3D && pose.keypoints3D.length > 0) {
-                tracker.drawKeypoints3D(pose.keypoints3D);
-            }
-
-            // Draw the responsive box on the canvas
-            tracker.ctx.save();
-            tracker.ctx.strokeStyle = 'blue';
-            tracker.ctx.lineWidth = 3;
-            tracker.ctx.strokeRect(box.x, box.y, box.width, box.height);
-            tracker.ctx.restore();
-
-            if (tracker.warningMessage) {
-                tracker.ctx.save();
-                tracker.ctx.font = '24px Arial';
-                tracker.ctx.fillStyle = 'red';
-                tracker.ctx.fillText(tracker.warningMessage, 20, 40);
-                tracker.ctx.restore();
-            }
-        }
-    }
-
-    // run user defined hooks
-    tracker.dispatch('afterupdate', tracker.poses);
-},
-// ...existing code...
-// ...existing code...
         
-
-    /*
-        Draw point and bone on canvas
-     */
+            tracker.dispatch('afterupdate', tracker.poses);
+        },
+        
     drawPath: function(fromX, fromY, toX, toY, r, g, b, score) {
-        // use score to calculate alpha
         let a = score - 0.15;
         if (a < 0) {
             a = 0.0;
         }
-        // draw connection
         tracker.drawLine(tracker.scaleX(fromX), tracker.scaleY(fromY), 
             tracker.scaleX(toX), tracker.scaleY(toY), 
             r, g, b, a);
 
-        // draw joint
         tracker.drawCircle(tracker.scaleX(fromX), tracker.scaleY(fromY), 
             r, g, b, a);
     },
 
-    /*
-        Draw connection between points on canvas
-     */
     drawLine: function(fromX, fromY, toX, toY, r, g, b, a) {
         tracker.ctx.beginPath();
         tracker.ctx.lineWidth = tracker.pointWidth;
@@ -901,9 +878,7 @@ handlePoses: function() {
         tracker.ctx.closePath();
     },
 
-    /*
-        Draw point on canvas
-     */
+
     drawCircle: function(fromX, fromY, r, g, b, a) {
         tracker.ctx.beginPath();
         tracker.ctx.arc(fromX, fromY, tracker.pointRadius, 0, 2 * Math.PI);
@@ -920,9 +895,6 @@ handlePoses: function() {
         tracker.ctx.restore();
     },
 
-    /*
-        Display play/pause icon
-     */
     showPlaybackControls: function() {
         let size = (tracker.canvas.height / 2) * 0.5;
 
@@ -940,9 +912,6 @@ handlePoses: function() {
         tracker.ctx.globalAlpha = 1;
     },
 
-    /*
-        Handle play/pause click on video
-     */
     playPauseClick: function() {
         if (tracker.container !== undefined && tracker.container.ready) {
             if (tracker.container.video.paused) {
@@ -961,40 +930,17 @@ handlePoses: function() {
         }
     },
 
-    /*
-        Play video
-     */
-    play: function() {
-        tracker.container.video.play();
-    },
-
-    /*
-        Pause video
-     */
-    pause: function() {
-        tracker.container.video.pause();
-    },
-
-    /*
-        Log message
-     */
     log: function(...args) {
         if (tracker.log) {
             console.log(...args);
         }
     },
 
-    /*
-        Set status message
-     */
     setStatus: function(msg) {
         tracker.status = msg;
         tracker.dispatch('statuschange', tracker.status);
     },
 
-    /*
-        Append external hook/event
-     */
     on: function(name, hook) {
         if (typeof tracker.hooks[name] === 'undefined') {
             return;
@@ -1002,9 +948,6 @@ handlePoses: function() {
         tracker.hooks[name].push(hook);
     },
 
-    /*
-        Dispatch hook/event
-     */
     dispatch: function(name, event) {
         if (typeof tracker.hooks[name] === 'undefined') {
             return;
@@ -1014,9 +957,6 @@ handlePoses: function() {
         }
     },
 
-    /*
-        Pre-initialize model by name
-     */
     setModel: function(model) {
         switch (model) {
             case 'BlazePoseLite':
@@ -1028,8 +968,6 @@ handlePoses: function() {
                 };
                 tracker.minScore = 0.65;
                 break;
-
-
         }
     },
 }
